@@ -18,6 +18,7 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QStandardPaths>
+#include <QEvent>
 
 #include <algorithm>
 #include <cstdio>
@@ -95,10 +96,6 @@ MainWindow::~MainWindow()
 {
     saveSettings();
     delete ui;
-    delete levelLabel;
-    delete scene;
-    delete previewWin;
-    delete settings;
 }
 
 void MainWindow::setupSignals() {
@@ -613,9 +610,7 @@ int MainWindow::closeFile() {
 
     // deallocate all level data
     for (int i = 0; i < 224; i++) {
-        if (levels[i])
-            free(levels[i]);
-
+        delete levels[i];
         levels[i] = NULL;
     }
 
@@ -625,7 +620,7 @@ int MainWindow::closeFile() {
     currentLevel.modifiedRecently = false;
 
     scene->cancelSelection();
-    scene->refresh();
+    scene->refresh(false);
     scene->clearStack();
     previewWin->refresh();
     previewWin->hide();
@@ -698,8 +693,7 @@ void MainWindow::loadLevelFromFile() {
         }
 
         leveldata_t *lev = levels[level];
-
-        memset((void*)lev, 0, sizeof(leveldata_t));
+        *lev = leveldata_t();
         lev->header = tempHeader;
 
         // load tile data
@@ -789,8 +783,7 @@ void MainWindow::loadCourseFromFile() {
 
     if (!newFileName.isNull() && file.open(QIODevice::ReadOnly)) {
         int courseStart = course * 8;
-        coursefile_t info;
-        memset(&info, 0, sizeof(coursefile_t));
+        coursefile_t info = coursefile_t();
 
         file.seek(0);
 
@@ -837,7 +830,7 @@ void MainWindow::loadCourseFromFile() {
                 continue;
             }
 
-            memset((void*)lev, 0, sizeof(leveldata_t));
+            *lev = leveldata_t();
             lev->header = tempHeader;
 
             // load tile data
@@ -952,7 +945,7 @@ void MainWindow::levelProperties() {
                    &waterPalette[course]);
 
     // update 2D and 3D displays
-    scene->refresh();
+    scene->refresh(false);
     previewWin->refresh();
 }
 
@@ -1016,7 +1009,7 @@ void MainWindow::setLevel(int level) {
 
     // set up the graphics view
     scene->cancelSelection();
-    scene->refresh();
+    scene->refresh(false);
     scene->clearStack();
     setUndoRedoActions(false);
 
